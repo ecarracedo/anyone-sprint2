@@ -1,0 +1,4 @@
+# Carpetas
+.venv
+__pycache__
+dataset
