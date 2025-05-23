@@ -54,7 +54,7 @@ def preprocess_data(
     #     working_train_df DataFrame to fit the OrdinalEncoder and
     #     OneHotEncoder classes, then use the fitted models to transform all the
     #     datasets.
-
+    
 
     # 3. TODO Impute values for all columns with missing data or, just all the columns.
     # Use median as imputing value. Please use sklearn.impute.SimpleImputer().
