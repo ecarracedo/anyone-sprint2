@@ -39,6 +39,7 @@ def preprocess_data(
     working_train_df["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace=True)
     working_val_df["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace=True)
     working_test_df["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace=True)
+    working_train_df["EMERGENCYSTATE_MODE"].fillna("No", inplace=True)
 
     # 2. TODO Encode string categorical features (dytpe `object`):
     #     - If the feature has 2 categories encode using binary encoding,
