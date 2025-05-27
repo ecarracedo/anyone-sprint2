@@ -44,9 +44,36 @@ def preprocess_data(
     #     - If the feature has 2 categories encode using binary encoding,
     #       please use `sklearn.preprocessing.OrdinalEncoder()`. Only 4 columns
     #       from the dataset should have 2 categories.
+
+    #Identificar columnas categóricas con valores binarios o hasta 2 categorías
+    cat_cols = working_train_df.select_dtypes(include='object').columns
+
+    #Filtrar las columnas categóricas que tienen 2 categorías y aplicar OrdinalEncoder
+    binary_cat_cols = [col for col in cat_cols if working_train_df[col].nunique() == 2]
+    encoder = OrdinalEncoder()
+    working_train_df[binary_cat_cols] = encoder.fit_transform(working_train_df[binary_cat_cols])
+
     #     - If it has more than 2 categories, use one-hot encoding, please use
     #       `sklearn.preprocessing.OneHotEncoder()`. 12 columns
     #       from the dataset should have more than 2 categories.
+
+    #Identificar columnas categóricas que NO son binarias o mayor a 2 categorías
+    multi_cat_cols = [col for col in cat_cols if working_train_df[col].nunique() > 2]
+
+    # Aplicar OneHotEncoder
+    # Usamos sparse_output=False para obtener un DataFrame, no una matriz dispersa
+    onehot_encoder = OneHotEncoder(sparse_output=False, drop=None)
+    onehot_encoded = onehot_encoder.fit_transform(working_train_df[multi_cat_cols])
+
+    #Crear DataFrame con los nuevos nombres de columnas
+    onehot_feature_names = onehot_encoder.get_feature_names_out(multi_cat_cols)
+    df_onehot = pd.DataFrame(onehot_encoded, columns=onehot_feature_names, index=working_train_df.index)
+
+    # Eliminar las columnas originales y añadir las nuevas codificadas
+    working_train_df = working_train_df.drop(columns=multi_cat_cols)
+    working_train_df = pd.concat([working_train_df, df_onehot], axis=1)
+
+
     # Take into account that:
     #   - You must apply this to the 3 DataFrames (working_train_df, working_val_df,
     #     working_test_df).
@@ -55,6 +82,8 @@ def preprocess_data(
     #     OneHotEncoder classes, then use the fitted models to transform all the
     #     datasets.
     
+    
+
 
     # 3. TODO Impute values for all columns with missing data or, just all the columns.
     # Use median as imputing value. Please use sklearn.impute.SimpleImputer().
@@ -76,4 +105,4 @@ def preprocess_data(
     #     model to transform all the datasets.
 
 
-    return None
+    return working_train_df
