@@ -57,8 +57,8 @@ def preprocess_data(
     #     working_train_df DataFrame to fit the OrdinalEncoder and
     #     OneHotEncoder classes, then use the fitted models to transform all the
     #     datasets.
-    
-        # 3. TODO Impute values for all columns with missing data or, just all the columns.
+ 
+    # 3. TODO Impute values for all columns with missing data or, just all the columns.
     # Use median as imputing value. Please use sklearn.impute.SimpleImputer().
     # Again, take into account that:
     #   - You must apply this to the 3 DataFrames (working_train_df, working_val_df,
@@ -66,7 +66,6 @@ def preprocess_data(
     #   - In order to prevent overfitting and avoid Data Leakage you must use only
     #     working_train_df DataFrame to fit the SimpleImputer and then use the fitted
     #     model to transform all the datasets.
-
 
     # 4. TODO Feature scaling with Min-Max scaler. Apply this to all the columns.
     # Please use sklearn.preprocessing.MinMaxScaler().
@@ -77,10 +76,21 @@ def preprocess_data(
     #     working_train_df DataFrame to fit the MinMaxScaler and then use the fitted
     #     model to transform all the datasets.
 
+    # Encode categorical features
     working_train_df, working_test_df, working_val_df = encode_dataset(working_train_df,
                                                                        working_test_df,
                                                                        working_val_df)
+    # Simple Imputer
+    working_train_df, working_test_df, working_val_df = simpleimputer_dataset(working_train_df,
+                                                                       working_test_df,
+                                                                       working_val_df)
 
+    # MinMax Scaler
+    working_train_df, working_test_df, working_val_df = mixmax_dataset(working_train_df,
+                                                                       working_test_df,
+                                                                       working_val_df)
+
+    # Dataframe to Numpy
     working_train_ndarray = working_train_df.to_numpy()
     working_test_ndarray = working_test_df.to_numpy()
     working_val_ndarray = working_val_df.to_numpy()
@@ -138,3 +148,31 @@ def encode_dataset(df, df_test, df_val):
     df_test = pd.concat([df_test, df_onehot_test], axis=1)
 
     return df, df_test, df_val
+
+def simpleimputer_dataset(df, df_test, df_val):
+    # Create an instance of SimpleImputer with median strategy
+    imputer = SimpleImputer(strategy='median')
+    
+    # Fit the imputer on the training data
+    imputer.fit(df)
+
+    # Transform the training, validation, and test datasets
+    imputed_train = pd.DataFrame(imputer.transform(df), columns=df.columns)
+    imputed_test = pd.DataFrame(imputer.transform(df_test), columns=df_test.columns)
+    imputed_val = pd.DataFrame(imputer.transform(df_val), columns=df_val.columns)
+    
+    return imputed_train, imputed_test, imputed_val
+
+def mixmax_dataset(df, df_test, df_val):
+    # Create an instance of MinMaxScaler
+    scaler = MinMaxScaler()
+
+    # Fit the scaler on the training data
+    scaler.fit(df)
+
+    # Transform the training, validation, and test datasets
+    scaled_train = pd.DataFrame(scaler.transform(df), columns=df.columns)
+    scaled_test = pd.DataFrame(scaler.transform(df_test), columns=df_test.columns)
+    scaled_val = pd.DataFrame(scaler.transform(df_val), columns=df_val.columns)
+
+    return scaled_train, scaled_test, scaled_val
