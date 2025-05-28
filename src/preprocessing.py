@@ -75,7 +75,7 @@ def preprocess_data(
     #     working_test_df).
     #   - In order to prevent ovrfitting and avoid Data Leakage you must use only
     #     working_train_df DataFrame to fit the MinMaxScaler and then use the fitted
-    #     model to transform all the dataset.
+    #     model to transform all the datasets.
 
     working_train_df, working_test_df, working_val_df = encode_dataset(working_train_df,
                                                                        working_test_df,
