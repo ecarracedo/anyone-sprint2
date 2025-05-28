@@ -46,34 +46,9 @@ def preprocess_data(
     #       please use `sklearn.preprocessing.OrdinalEncoder()`. Only 4 columns
     #       from the dataset should have 2 categories.
 
-    #Identificar columnas categóricas con valores binarios o hasta 2 categorías
-    cat_cols = working_train_df.select_dtypes(include='object').columns
-
-    #Filtrar las columnas categóricas que tienen 2 categorías y aplicar OrdinalEncoder
-    binary_cat_cols = [col for col in cat_cols if working_train_df[col].nunique() == 2]
-    encoder = OrdinalEncoder()
-    working_train_df[binary_cat_cols] = encoder.fit_transform(working_train_df[binary_cat_cols])
-
     #     - If it has more than 2 categories, use one-hot encoding, please use
     #       `sklearn.preprocessing.OneHotEncoder()`. 12 columns
     #       from the dataset should have more than 2 categories.
-
-    #Identificar columnas categóricas que NO son binarias o mayor a 2 categorías
-    multi_cat_cols = [col for col in cat_cols if working_train_df[col].nunique() > 2]
-
-    # Aplicar OneHotEncoder
-    # Usamos sparse_output=False para obtener un DataFrame, no una matriz dispersa
-    onehot_encoder = OneHotEncoder(sparse_output=False, drop=None)
-    onehot_encoded = onehot_encoder.fit_transform(working_train_df[multi_cat_cols])
-
-    #Crear DataFrame con los nuevos nombres de columnas
-    onehot_feature_names = onehot_encoder.get_feature_names_out(multi_cat_cols)
-    df_onehot = pd.DataFrame(onehot_encoded, columns=onehot_feature_names, index=working_train_df.index)
-
-    # Eliminar las columnas originales y añadir las nuevas codificadas
-    working_train_df = working_train_df.drop(columns=multi_cat_cols)
-    working_train_df = pd.concat([working_train_df, df_onehot], axis=1)
-
 
     # Take into account that:
     #   - You must apply this to the 3 DataFrames (working_train_df, working_val_df,
@@ -83,10 +58,7 @@ def preprocess_data(
     #     OneHotEncoder classes, then use the fitted models to transform all the
     #     datasets.
     
-    
-
-
-    # 3. TODO Impute values for all columns with missing data or, just all the columns.
+        # 3. TODO Impute values for all columns with missing data or, just all the columns.
     # Use median as imputing value. Please use sklearn.impute.SimpleImputer().
     # Again, take into account that:
     #   - You must apply this to the 3 DataFrames (working_train_df, working_val_df,
@@ -101,9 +73,68 @@ def preprocess_data(
     # Again, take into account that:
     #   - You must apply this to the 3 DataFrames (working_train_df, working_val_df,
     #     working_test_df).
-    #   - In order to prevent overfitting and avoid Data Leakage you must use only
+    #   - In order to prevent ovrfitting and avoid Data Leakage you must use only
     #     working_train_df DataFrame to fit the MinMaxScaler and then use the fitted
     #     model to transform all the datasets.
 
+    working_train_df, working_test_df, working_val_df = encode_dataset(working_train_df,
+                                                                       working_test_df,
+                                                                       working_val_df)
 
-    return working_train_df
+    working_train_ndarray = working_train_df.to_numpy()
+    working_test_ndarray = working_test_df.to_numpy()
+    working_val_ndarray = working_val_df.to_numpy()
+
+    return working_train_ndarray, working_val_ndarray, working_test_ndarray
+
+
+def encode_dataset(df, df_test, df_val):
+
+    ############################ OrdinalEncoder ###########################
+
+    # Identificar columnas categóricas con valores binarios o hasta 2 categorías
+    cat_cols = df.select_dtypes(include='object').columns
+
+    # Filtrar las columnas categóricas que tienen 2 categorías y aplicar OrdinalEncoder
+    binary_cat_cols = [col for col in cat_cols if df[col].nunique() == 2]
+
+    # Aplicar OrdinalEncoder a las columnas binarias
+    encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=np.nan)
+    df[binary_cat_cols] = encoder.fit_transform(df[binary_cat_cols])
+
+    ########################### OneHotEncoder ##############################
+
+    # Identificar columnas categóricas con más de 2 categorías
+    multi_cat_cols = [col for col in cat_cols if df[col].nunique() > 2]
+
+    # Aplicar OneHotEncoder
+    # Usamos sparse_output=False para obtener un DataFrame, no una matriz dispersa
+    onehot_encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False, drop=None)
+    onehot_encoded = onehot_encoder.fit_transform(df[multi_cat_cols])
+
+    ########################### Unir Encoders ##############################
+
+    # Crear DataFrame con los nuevos nombres de columnas
+    onehot_feature_names = onehot_encoder.get_feature_names_out(multi_cat_cols)
+    df_onehot = pd.DataFrame(onehot_encoded, columns=onehot_feature_names, index=df.index)
+
+    # Eliminar las columnas originales y añadir las nuevas codificadas
+    df = df.drop(columns=multi_cat_cols)
+    df = pd.concat([df, df_onehot], axis=1)
+
+    # Aplicar los encoders ya entrenados
+    df_val[binary_cat_cols] = encoder.transform(df_val[binary_cat_cols])
+    df_test[binary_cat_cols] = encoder.transform(df_test[binary_cat_cols])
+    onehot_encoded_val = onehot_encoder.transform(df_val[multi_cat_cols])
+    onehot_encoded_test = onehot_encoder.transform(df_test[multi_cat_cols])
+
+    df_onehot_val = pd.DataFrame(onehot_encoded_val, columns=onehot_feature_names, index=df_val.index)
+    df_onehot_test = pd.DataFrame(onehot_encoded_test, columns=onehot_feature_names, index=df_test.index)
+    
+    df_val = df_val.drop(columns=multi_cat_cols)
+    df_val = pd.concat([df_val, df_onehot_val], axis=1)
+
+    df_test = df_test.drop(columns=multi_cat_cols)
+    df_test = pd.concat([df_test, df_onehot_test], axis=1)
+
+    return df, df_test, df_val
